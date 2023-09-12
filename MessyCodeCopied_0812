@@ -1,0 +1,182 @@
+#### Crime Log Data Cleaning
+### September 5
+packageDownloader <- function() {
+  library(tidyverse)
+  library(dplyr)
+  library(rcrimeanalysis)
+}
+
+###TO DO:
+####upload data to Github and exrtract straight from there
+
+data_all <- list.files(path = "/Users/avakalina/Downloads/Deans Scholar",  # Identify all CSV files
+                       pattern = "*.csv", full.names = TRUE) %>% 
+  lapply(read_csv) %>%                              # Store all files in list
+  bind_rows                                         # Combine data sets into one data set 
+data_all                                            # Print data to RStudio console
+#https://statisticsglobe.com/merge-csv-files-in-r
+
+
+##data set of sex offenses
+data_all_filtered <- data_all %>% 
+  filter(grepl('SEX', IncidentType))
+
+## filters out duplicate cases (multiple counts)
+data_all_unique <- data_all_filtered[!duplicated(data_all_filtered$CaseNumber), ]
+
+
+##aggregate data
+agg_tbl <- data_all_unique %>% group_by(IncidentType) %>% 
+  summarise(total_count=n(),
+            .groups = 'drop')
+agg_tbl
+
+## removing times from date/time reported column
+processAndClean <- function(data) {
+  reportedDate <- str_sub(data$ReportedTime, end = -6)
+  data$ReportedDate <- reportedDate
+  data$ReportedTime <- str_sub(data$ReportedTime, start = -5)
+  
+  startDate <- str_sub(data$IncidentStart, end = -6)
+  data$startDate <- startDate
+  data$IncidentStart <- str_sub(data$IncidentStart, start = -5)
+  
+  endDate <- str_sub(data$IncidentEnd, end = -6)
+  data$endDate <- endDate
+  data$IncidentEnd <- str_sub(data$IncidentEnd, start = -5)
+  return(data)
+}
+data_all_unique <- processAndClean(data_all_unique)
+head(data)
+
+## removing time from incident occurrence column
+#data$IncidentStart <- str_sub(data$IncidentStart, end = -5)
+## removing time from incident occurence end column
+#data$IncidentEnd <- str_sub(data$IncidentEnd, end = -5)
+
+##converting strings to dates
+data_all_unique$ReportedDate <- as.Date(data_all_unique$ReportedDate, format="%m/%d/%Y")
+
+data_all_unique$startDate <- as.Date(data_all_unique$startDate, format="%m/%d/%Y")
+
+data_all_unique$endDate <- as.Date(data_all_unique$endDate, format="%m/%d/%Y")
+
+c
+install.packages("lubridate")
+library(lubridate)
+
+data_month <- data_all_unique %>% 
+  mutate(month = ReportedTime, "%m")
+
+str(data_all_unique)
+
+?format
+
+#data_all_unique$IncidentEnd <- as.POSIXct(data_all_unique$IncidentEnd, format="%H%M")
+
+str(data_all_unique)
+
+?as.Date
+
+str(data_all_unique)
+
+#data_all_unique$ReportedTime <- as.POSIXlt(data_all_unique$ReportedTime, format = "%H%M")
+#data_all_unique$IncidentStart <- as.POSIXlt(data_all_unique$IncidentStart, format = "%H%M")
+
+#data_all_time <- data_all_unique %>% 
+  as.POSIXlt(data_all_unique$ReportedTime, format = "%H%M")
+
+is.atomic(data_all_unique$ReportedTime)
+
+head(data_all_unique)
+
+#####REMEMBER#########
+##find out a way to separate ###
+##incident times from the dates##
+##so we get that temporal data##
+################################
+
+###time series graph??
+
+new <- data_all_unique %>%
+  group_by(CaseNumber) %>%
+  mutate(var1_count = n())
+
+data_all_numeric <- data_all_unique %>% 
+  as.numeric(IncidentType)
+
+library(ggplot2)
+p <- ggplot(new, aes(x=IncidentStart, y=var1_count)) +
+  geom_line() + 
+  xlab("")
+p
+
+library(lubridate)
+?floor_date
+
+new %>% 
+  summarize(sum_of_assaults = sum(new$var_1count))
+
+new <- new %>% 
+  ungroup()
+
+## filter rapes
+data_all_rape <- data_all_filtered %>% 
+  filter(grepl('SEX OFFENSE : RAPE', IncidentType))
+
+#data_unique_rape <- data_all_rape[!duplicated(data_all_rape$CaseNumber), ]
+##removes duplicates (when rapes have multiple counts)
+
+## filter fondling
+data_fondling <- data_all_unique %>% 
+  filter(grepl('SEX OFFENSE : FONDLING', IncidentType))
+
+## filter imposition
+data_imposition <- data_all_unique %>%
+  filter(grepl('IMPOSITION', IncidentType))
+
+data_sex_offense <- data_all_unique %>% 
+  filter('SEX OFFENSE', IncidentType)
+
+
+packageDownloader()
+data_all_unique <- processAndClean(data_all_unique)
+####################################################
+##VISUALIZATIONS################
+if(!require(readr)) install.packages("readr")
+if(!require(dplyr)) install.packages("dplyr")
+if(!require(DT)) install.packages("DT")
+if(!require(ggrepel)) install.packages("ggrepel")
+if(!require(leaflet)) install.packages("leaflet")
+library(dplyr)
+
+df_crime_daily <- df_crime_daily %>%
+  filter(between(startDate, as.Date('2013-08-15'), as.Date('2023-05-15'))) %>%
+  group_by(Month, Year) %>%
+  summarize(count= n()) #%>% 
+  arrange(startDate)
+  
+df_crime_monthly <- df_crime_monthly %>% 
+  filter(between(startDate, as.Date('2013-08-15'), as.Date('2023-05-15'))) %>%
+  group_by(Month, Year) %>%
+  summarize(count= n()) #%>% 
+  arrange(Month)
+
+df_crime_daily$Month <- month(df_crime_daily$startDate)
+df_crime_daily$Year <- year(df_crime_daily$startDate)
+
+df_crime_monthly$month_name <- month.name[month(df_crime_monthly$startDate)]
+
+
+head(df_crime_daily)
+
+library(ggplot2)
+library(scales)
+plot <- ggplot(df_crime_daily, aes(x = Year, y = count)) +
+  geom_line(color = "#F2CA27", size = 0.1) +
+  geom_smooth(color = "#1A1A1A") +
+  # fte_theme() +
+  scale_x_date(breaks = date_breaks("1 year"), labels = date_format("%Y")) +
+  labs(x = "Date of Crime", y = "Number of Crimes", title = "Daily Crimes in San Francisco from 2007 – 2016")
+
+plot
