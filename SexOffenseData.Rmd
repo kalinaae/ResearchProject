@@ -4,10 +4,81 @@ author: "Ava Kalina"
 date: "9/12/2023"
 output: html_document
 ---
+This is my RMarkdown document for data cleaning!
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+install.packages("lubridate")
+library(tidyverse)
+library(dplyr)
+library(lubridate)
+
+data_all <- list.files(path = "/Users/avakalina/Downloads/Deans Scholar",
+                       pattern = "*.csv", full.names = TRUE) %>% 
+  lapply(read_csv) %>%                              
+  bind_rows                                         
+
+filtered_data <- data_all %>% 
+  filter(grepl('SEX', IncidentType))
+
+unique_data <- filtered_data[!duplicated(filtered_data$CaseNumber), ]
 ```
+
+
+Creating Column for Time
+```{r}
+processAndClean <- function(data) {
+  reportedDate <- str_sub(data$ReportedTime, end = -6)
+  data$ReportedDate <- reportedDate
+  data$ReportedTime <- str_sub(data$ReportedTime, start = -5)
+  
+  startDate <- str_sub(data$IncidentStart, end = -6)
+  data$startDate <- startDate
+  data$IncidentStart <- str_sub(data$IncidentStart, start = -5)
+  
+  endDate <- str_sub(data$IncidentEnd, end = -6)
+  data$endDate <- endDate
+  data$IncidentEnd <- str_sub(data$IncidentEnd, start = -5)
+  return(data)
+}
+unique_data <- processAndClean(unique_data)
+```
+
+Converting Strings to Dates
+```{r}
+unique_data$ReportedDate <- as.Date(unique_data$ReportedDate, format="%m/%d/%Y")
+
+unique_data$startDate <- as.Date(unique_data$startDate, format="%m/%d/%Y")
+
+unique_data$endDate <- as.Date(unique_data$endDate, format="%m/%d/%Y")
+```
+
+
+VISUALIZATIONS
+```{r}
+viz_data <- unique_data
+viz_data$Month <- month(viz_data$startDate)
+viz_data$Year <- year(viz_data$startDate)
+df_crime_monthly$month_name <- month.name[month(df_crime_monthly$startDate)]
+
+
+df_crime_daily <- unique_data %>%
+  filter(between(startDate, as.Date('2013-08-15'), as.Date('2023-05-15'))) %>%
+  group_by(Month, Year) %>%
+  summarize(count= n()) #%>% 
+  arrange(startDate)
+```
+
+
+
+
+
+
+
+
+
 
 ## R Markdown
 
