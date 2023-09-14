@@ -64,12 +64,33 @@ viz_data$Year <- year(viz_data$startDate)
 viz_data$month_name <- month.name[month(viz_data$startDate)]
 
 
-df_crime_daily <- viz_data %>%
+df_crime_monthly <- viz_data %>%
   filter(between(startDate, as.Date('2013-08-15'), as.Date('2023-05-15'))) %>%
   group_by(Month, Year) %>%
-  summarize(count= n()) #%>% 
+  summarize(count= n()) #%>%
+
+df_crime_monthly <- df_crime_monthly %>% 
   arrange(startDate)
 ```
+
+```{r}
+library(ggplot2)
+
+# Create a line graph
+p <- ggplot(df_crime_monthly, aes(x = Month, y = count, group = Year, color = as.factor(Year))) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Sex Offense Data by Month (2013-2023)",
+       x = "Month",
+       y = "Count",
+       color = "Year") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+str(df_crime_monthly)
+p
+
+````
 
 
 
