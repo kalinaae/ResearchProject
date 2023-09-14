@@ -61,7 +61,7 @@ VISUALIZATIONS
 viz_data <- unique_data
 viz_data$Month <- month(viz_data$startDate)
 viz_data$Year <- year(viz_data$startDate)
-df_crime_monthly$month_name <- month.name[month(df_crime_monthly$startDate)]
+viz_data$month_name <- month.name[month(viz_data$startDate)]
 
 
 df_crime_daily <- unique_data %>%
