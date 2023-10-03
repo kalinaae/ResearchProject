@@ -6,10 +6,9 @@ output: html_document
 ---
 This is my RMarkdown document for data cleaning!
 
-
-```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
+```{r setup, include=FALSE}
 install.packages("lubridate")
 library(tidyverse)
 library(dplyr)
@@ -20,7 +19,7 @@ data_all <- list.files(path = "/Users/avakalina/Downloads/Deans Scholar",
   lapply(read_csv) %>%                              
   bind_rows                                         
 
-new_filtered_data <- data_all %>% 
+filtered_data <- data_all %>% 
   filter(IncidentType %in%  c("SEX OFFENSE : FONDLING","SEX OFFENSE : SEXUAL IMPOSITION", "SEX OFFENSE : SEXUAL BATTERY","SEX OFFENSE : RAPE","SEX OFFENSE : RAPE (Count 1)","SEX OFFENSE : RAPE (Count 2)","SEX OFFENSE : RAPE (Count 3)", "SEX OFFENSE : RAPE (Count 4)","SEX OFFENSE : GROSS SEXUAL IMPOSITION","SEX OFFENSE","SEX OFFENSE (Count 1)","SEX OFFENSE (Count 2)","DATING VIOLENCE","STALKING")) %>% 
   distinct(CaseNumber, .keep_all = TRUE) %>% 
   mutate(ReportedDate = str_sub(ReportedTime, end = -6),
@@ -33,73 +32,25 @@ new_filtered_data <- data_all %>%
   mutate(ReportedDate = as.Date(ReportedDate, format="%m/%d/%Y"),
          EndDate = as.Date(EndDate, format="%m/%d/%Y"),
          StartDate = as.Date(StartDate, format="%m/%d/%Y"))
-
-
 ```
 
 
 VISUALIZATIONS
 ```{r}
-viz_data <- unique_data
-viz_data$Inc_Month <- month(viz_data$startDate)
-viz_data$Inc_Year <- year(viz_data$startDate)
-viz_data$month_name <- month.name[month(viz_data$startDate)]
+viz_data <- filtered_data %>% 
+  mutate(Inc_Month = month(StartDate),
+         Inc_Year = year(StartDate),
+         Month_Name = month.name[month(StartDate)]) 
+
 
 df_crime_monthly <- viz_data %>%
-  filter(between(startDate, as.Date('2013-08-15'), as.Date('2023-05-15'))) %>%
-  group_by(month_name, Inc_Year) %>%
-  summarize(count= n()) #%>%
+  group_by(Month_Name, Inc_Year) %>%
+  summarize(count= n())%>% 
+  filter(between(StartDate, as.Date('2013-08-15'), as.Date('2023-05-15'))) %>% 
+  factor(Month_Name, levels = c("August", "September", "October", "November", "December","January", "February", "March", "April", "May", "June", "July"))
 
-incident_ten <- viz_data %>% 
-    filter(between(startDate, as.Date('2013-08-15'), as.Date('2023-05-15')))
-
-
-#df_crime_monthly <- df_crime_monthly %>% 
- # arrange(startDate)
-```
-
-
-Reporting Differences
-```{r}
-viz_data <- viz_data %>% 
-  mutate(reported_date_difference.e = as.numeric(ReportedDate - startDate)) %>% 
-  mutate(incident_length = as.numeric(endDate - startDate)) %>% 
-  mutate(reported_date_difference.s = as.numeric(ReportedDate - startDate))
-
-str(viz_data)
-
-summary(incident_ten$reported_date_difference)
-
-summary(incident_ten$incident_length)
-?summary
-
-viz_data1 <- viz_data %>% 
-  subset(reported_date_difference.e < 10000)
-
-ggplot(viz_data1, aes(x=reported_date_difference.e)) + geom_histogram(binwidth = 72, fill = "lightblue", color = "black") +
-  labs(title = "The Number of Days between date of incident and reported date",
-       x = "Number of Days",
-       y = "Frequency")
-
-ggplot(viz_data1, aes(x=incident_length)) + geom_histogram(binwidth = 72, fill = "lightblue", color = "black") +
-  labs(title = "Length of Incident",
-       x = "Number of Days",
-       y = "Frequency")
-
-##alot of them are the same value???
-###this direct correlation should not exist
-ggplot(viz_data1, aes(x = reported_date_difference.s, y = incident_length)) +
-  geom_point() +  # Add points to the plot
-  labs(x = "incident length",  # X-axis label
-       y = "time to report",  # Y-axis label
-       title = "Scatterplot Example")  # Title
-
-write.csv(viz_data1,"/Users/avakalina/Downloads/Deans Scholar/viz_data.csv", row.names=FALSE)
-
-install.packages("writexl")
-
-library("writexl")
-write_xlsx(viz_data1,"/Users/avakalina/Downloads/Deans Scholar/viz_data.xlsx")
+df_crime_yearly <- viz_data %>% 
+   filter(between(StartDate, as.Date('2014-01-01'), as.Date('2022-12-31')))
 
 ```
 
@@ -108,8 +59,8 @@ write_xlsx(viz_data1,"/Users/avakalina/Downloads/Deans Scholar/viz_data.xlsx")
 library(ggplot2)
 library(scales)
 
-# Create a line graph
-p <- ggplot(df_crime_monthly, aes(x = factor(month_name, levels = month.name[c(7:12, 1:6)]), y = count, group = Inc_Year, color = as.factor(Inc_Year))) +
+# Sex Offense by Month with year
+ggplot(df_crime_monthly, aes(x = factor(Month_Name, levels = month.name[c(7:12, 1:6)]), y = count, group = Inc_Year, color = as.factor(Inc_Year))) +
   geom_line() +
   geom_point() +
   labs(title = "Sex Offense Data by Month (2013-2023)",
@@ -118,18 +69,52 @@ p <- ggplot(df_crime_monthly, aes(x = factor(month_name, levels = month.name[c(7
        color = "Year") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
 
-df_crime_monthly$month_name <- factor(df_crime_monthly$month_name, levels = c("August", "September", "October", "November", "December","January", "February", "March", "April", "May", "June", "July"))
+```{r}
+df_crime_monthly$Month_Name <- factor(df_crime_monthly$Month_Name, levels = c("August", "September", "October", "November", "December","January", "February", "March", "April", "May", "June", "July"))
 
-month_year <- ggplot(df_crime_monthly, aes(x = month_name, y = count, fill= as.factor(Inc_Year))) +
+ggplot(df_crime_monthly, aes(x = Month_Name, y = count, fill= as.factor(Inc_Year))) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.8)) +
   labs(title = "Sexual Offense Count by Month", x = "Months", y = "Count") +
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-month <- ggplot(df_crime_monthly, aes(x = month_name, y = count, fill= month_name)) +
+```
+
+
+``` {r}
+ggplot(df_crime_monthly, aes(x = Month_Name, y = count, fill= Month_Name)) +
   geom_bar(stat = "identity") +
   labs(title = "Sexual Offense Count by Month", x = "Months", y = "Count") +
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+
+``` {r}
+df_crime_yearly$Inc_Year <-  as.Date(paste0(df_crime_yearly$Inc_Year, "-01-01"))
+
+df_crime_yearly <- df_crime_yearly %>%
+  group_by(Inc_Year) %>% 
+  summarize(count= n())
+
+ggplot(df_crime_yearly, aes(x = as.Date(paste0(Inc_Year, "-01-01")), y = count)) +
+  geom_line() +   # Line plot
+  labs(title = "Time Series Plot Over 10 Years",
+    x = "Date",
+    y = "Value") +
+  theme_minimal()+
+  scale_x_date(date_labels = "%Y", date_breaks = "1 year") +
+  labs(x = "Year", y = "Value")
+
+```
+
+
+
+
+`{r}
 
 library(lubridate)
 year_summary$Inc_Year <- as.Date(year_summary$Inc_Year, format = "%Y")
@@ -145,13 +130,7 @@ years <- ggplot(year_summary, aes(x = Inc_Year, y = Sum_of_Occurrences)) +
     x = "Date",
     y = "Value"
   ) +
-  theme_minimal()
-
-
-
-year_summary <- df_crime_monthly %>%
-  group_by(Inc_Year) %>%
-  summarize(Sum_of_Occurrences = sum(count))
+  theme_minimal
 
 print(year_summary)
 
@@ -199,9 +178,10 @@ print(data_summary)
 ```
 
 
+
 Location: 
 
-```{r}
+``{r}
 
 location_df <- viz_data %>% 
   group_by(Location) %>%
@@ -209,7 +189,53 @@ location_df <- viz_data %>%
   
 ```
 
-```{r}
+
+
+Reporting Differences
+``{r}
+viz_data <- viz_data %>% 
+  mutate(reported_date_difference.e = as.numeric(ReportedDate - startDate)) %>% 
+  mutate(incident_length = as.numeric(endDate - startDate)) %>% 
+  mutate(reported_date_difference.s = as.numeric(ReportedDate - startDate))
+
+str(viz_data)
+
+summary(incident_ten$reported_date_difference)
+
+summary(incident_ten$incident_length)
+?summary
+
+viz_data1 <- viz_data %>% 
+  subset(reported_date_difference.e < 10000)
+
+ggplot(viz_data1, aes(x=reported_date_difference.e)) + geom_histogram(binwidth = 72, fill = "lightblue", color = "black") +
+  labs(title = "The Number of Days between date of incident and reported date",
+       x = "Number of Days",
+       y = "Frequency")
+
+ggplot(viz_data1, aes(x=incident_length)) + geom_histogram(binwidth = 72, fill = "lightblue", color = "black") +
+  labs(title = "Length of Incident",
+       x = "Number of Days",
+       y = "Frequency")
+
+##alot of them are the same value???
+###this direct correlation should not exist
+ggplot(viz_data1, aes(x = reported_date_difference.s, y = incident_length)) +
+  geom_point() +  # Add points to the plot
+  labs(x = "incident length",  # X-axis label
+       y = "time to report",  # Y-axis label
+       title = "Scatterplot Example")  # Title
+
+write.csv(viz_data1,"/Users/avakalina/Downloads/Deans Scholar/viz_data.csv", row.names=FALSE)
+
+install.packages("writexl")
+
+library("writexl")
+write_xlsx(viz_data1,"/Users/avakalina/Downloads/Deans Scholar/viz_data.xlsx")
+
+```
+
+``{r}
 
 
 
@@ -284,7 +310,7 @@ location_df <- viz_data %>%
 
 By Year
 
-```{r}
+``'`{r}
 date_ranges <- data.frame(
   StartDate = as.Date(c("2013-08-26", "2014-08-25", "2015-08-24")),
   EndDate = as.Date(c("2014-05-18", "2015-05-17", "2016-05-15")),
@@ -320,7 +346,7 @@ years <- viz_data %>%
 
 Day Outliers (GBD, new years, halloween...)
 
-```{r}
+`'``{r}
 
 day_counts <- unique_data
 
