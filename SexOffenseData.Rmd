@@ -20,65 +20,96 @@ data_all <- list.files(path = "/Users/avakalina/Downloads/Deans Scholar",
   lapply(read_csv) %>%                              
   bind_rows                                         
 
-filtered_data <- data_all %>% 
-  filter(grepl('SEX', IncidentType))
+new_filtered_data <- data_all %>% 
+  filter(IncidentType %in%  c("SEX OFFENSE : FONDLING","SEX OFFENSE : SEXUAL IMPOSITION", "SEX OFFENSE : SEXUAL BATTERY","SEX OFFENSE : RAPE","SEX OFFENSE : RAPE (Count 1)","SEX OFFENSE : RAPE (Count 2)","SEX OFFENSE : RAPE (Count 3)", "SEX OFFENSE : RAPE (Count 4)","SEX OFFENSE : GROSS SEXUAL IMPOSITION","SEX OFFENSE","SEX OFFENSE (Count 1)","SEX OFFENSE (Count 2)","DATING VIOLENCE","STALKING")) %>% 
+  distinct(CaseNumber, .keep_all = TRUE) %>% 
+  mutate(ReportedDate = str_sub(ReportedTime, end = -6),
+         ReportedTime = str_sub(ReportedTime, start = -5),
+         StartDate = str_sub(IncidentStart, end = -6),
+         StartTime = str_sub(IncidentStart, start = -5),
+         EndDate = str_sub(IncidentEnd, end = -6),
+         EndTime = str_sub(IncidentEnd, start = -5)) %>% 
+  select(-IncidentStart, -IncidentEnd) %>% 
+  mutate(ReportedDate = as.Date(ReportedDate, format="%m/%d/%Y"),
+         EndDate = as.Date(EndDate, format="%m/%d/%Y"),
+         StartDate = as.Date(StartDate, format="%m/%d/%Y"))
 
-unique_data <- filtered_data[!duplicated(filtered_data$CaseNumber), ]
-```
 
-
-Creating Column for Time
-```{r}
-processAndClean <- function(data) {
-  reportedDate <- str_sub(data$ReportedTime, end = -6)
-  data$ReportedDate <- reportedDate
-  data$ReportedTime <- str_sub(data$ReportedTime, start = -5)
-  
-  startDate <- str_sub(data$IncidentStart, end = -6)
-  data$startDate <- startDate
-  data$IncidentStart <- str_sub(data$IncidentStart, start = -5)
-  
-  endDate <- str_sub(data$IncidentEnd, end = -6)
-  data$endDate <- endDate
-  data$IncidentEnd <- str_sub(data$IncidentEnd, start = -5)
-  return(data)
-}
-unique_data <- processAndClean(unique_data)
-```
-
-Converting Strings to Dates
-```{r}
-unique_data$ReportedDate <- as.Date(unique_data$ReportedDate, format="%m/%d/%Y")
-
-unique_data$startDate <- as.Date(unique_data$startDate, format="%m/%d/%Y")
-
-unique_data$endDate <- as.Date(unique_data$endDate, format="%m/%d/%Y")
 ```
 
 
 VISUALIZATIONS
 ```{r}
 viz_data <- unique_data
-viz_data$Month <- month(viz_data$startDate)
-viz_data$Year <- year(viz_data$startDate)
+viz_data$Inc_Month <- month(viz_data$startDate)
+viz_data$Inc_Year <- year(viz_data$startDate)
 viz_data$month_name <- month.name[month(viz_data$startDate)]
-
 
 df_crime_monthly <- viz_data %>%
   filter(between(startDate, as.Date('2013-08-15'), as.Date('2023-05-15'))) %>%
-  group_by(month_name, Year) %>%
+  group_by(month_name, Inc_Year) %>%
   summarize(count= n()) #%>%
+
+incident_ten <- viz_data %>% 
+    filter(between(startDate, as.Date('2013-08-15'), as.Date('2023-05-15')))
+
 
 #df_crime_monthly <- df_crime_monthly %>% 
  # arrange(startDate)
 ```
+
+
+Reporting Differences
+```{r}
+viz_data <- viz_data %>% 
+  mutate(reported_date_difference.e = as.numeric(ReportedDate - startDate)) %>% 
+  mutate(incident_length = as.numeric(endDate - startDate)) %>% 
+  mutate(reported_date_difference.s = as.numeric(ReportedDate - startDate))
+
+str(viz_data)
+
+summary(incident_ten$reported_date_difference)
+
+summary(incident_ten$incident_length)
+?summary
+
+viz_data1 <- viz_data %>% 
+  subset(reported_date_difference.e < 10000)
+
+ggplot(viz_data1, aes(x=reported_date_difference.e)) + geom_histogram(binwidth = 72, fill = "lightblue", color = "black") +
+  labs(title = "The Number of Days between date of incident and reported date",
+       x = "Number of Days",
+       y = "Frequency")
+
+ggplot(viz_data1, aes(x=incident_length)) + geom_histogram(binwidth = 72, fill = "lightblue", color = "black") +
+  labs(title = "Length of Incident",
+       x = "Number of Days",
+       y = "Frequency")
+
+##alot of them are the same value???
+###this direct correlation should not exist
+ggplot(viz_data1, aes(x = reported_date_difference.s, y = incident_length)) +
+  geom_point() +  # Add points to the plot
+  labs(x = "incident length",  # X-axis label
+       y = "time to report",  # Y-axis label
+       title = "Scatterplot Example")  # Title
+
+write.csv(viz_data1,"/Users/avakalina/Downloads/Deans Scholar/viz_data.csv", row.names=FALSE)
+
+install.packages("writexl")
+
+library("writexl")
+write_xlsx(viz_data1,"/Users/avakalina/Downloads/Deans Scholar/viz_data.xlsx")
+
+```
+
 
 ```{r}
 library(ggplot2)
 library(scales)
 
 # Create a line graph
-p <- ggplot(df_crime_monthly, aes(x = factor(month_name, levels = month.name[c(7:12, 1:6)]), y = count, group = Year, color = as.factor(Year))) +
+p <- ggplot(df_crime_monthly, aes(x = factor(month_name, levels = month.name[c(7:12, 1:6)]), y = count, group = Inc_Year, color = as.factor(Inc_Year))) +
   geom_line() +
   geom_point() +
   labs(title = "Sex Offense Data by Month (2013-2023)",
@@ -88,19 +119,246 @@ p <- ggplot(df_crime_monthly, aes(x = factor(month_name, levels = month.name[c(7
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
+df_crime_monthly$month_name <- factor(df_crime_monthly$month_name, levels = c("August", "September", "October", "November", "December","January", "February", "March", "April", "May", "June", "July"))
+
+month_year <- ggplot(df_crime_monthly, aes(x = month_name, y = count, fill= as.factor(Inc_Year))) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.8)) +
+  labs(title = "Sexual Offense Count by Month", x = "Months", y = "Count") +
+  theme_minimal()
+
+month <- ggplot(df_crime_monthly, aes(x = month_name, y = count, fill= month_name)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Sexual Offense Count by Month", x = "Months", y = "Count") +
+  theme_minimal()
+
+library(lubridate)
+year_summary$Inc_Year <- as.Date(year_summary$Inc_Year, format = "%Y")
+
+month
+month_year
 p
 
-#your_data$month = factor(your_data$month, levels = month.abb)
+years <- ggplot(year_summary, aes(x = Inc_Year, y = Sum_of_Occurrences)) +
+  geom_line() +   # Line plot
+  labs(
+    title = "Time Series Plot Over 10 Years",
+    x = "Date",
+    y = "Value"
+  ) +
+  theme_minimal()
 
 
-#df_crime_monthly <- df_crime_monthly %>% 
-  as.Date(Month, format="%m")
 
-#str(df_crime_monthly)
-#$Month <- as.Date(df_crime_monthly$Month, format="%m")
-````
+year_summary <- df_crime_monthly %>%
+  group_by(Inc_Year) %>%
+  summarize(Sum_of_Occurrences = sum(count))
+
+print(year_summary)
+
+month_summary <- df_crime_monthly %>%
+  group_by(month_name) %>%
+  summarize(Sum_of_Occurrences = sum(count))
+
+print(month_summary)
+
+dorm_summary <- viz_data1 %>% 
+  group_by(Location) %>% 
+  summarize(Count = n())
+
+loc <- ggplot(dorm_summary, aes(x = Location, y = Count)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Sexual Offense Count by Month", x = "Months", y = "Count") +
+  theme_minimal()
+
+loc
+
+summary_table <- table(viz_data1$Location)
+
+# Sort the summary table in descending order and select the top 10
+top_10 <- head(sort(summary_table, increasing = TRUE), 10)
+
+# Convert the frequency table to a data frame for ggplot
+top_10_df <- as.data.frame(top_10)
+
+ggplot(top_10_df, aes(x = reorder(Var1, Freq), y = Freq)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Top 10 Values", x = "Category", y = "Frequency")
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for better readability
+
+years
+
+data_summary <- viz_data1 %>%
+  mutate(Bin = cut(reported_date_difference.e, breaks = seq(0, max(reported_date_difference.e), by = 10), right = FALSE)) %>%
+  group_by(Bin) %>%
+  summarise(Frequency = n())
+
+print(data_summary)
+
+# Print the summary table
+print(data_summary)
+```
 
 
+Location: 
+
+```{r}
+
+location_df <- viz_data %>% 
+  group_by(Location) %>%
+  summarize(count= n())
+  
+```
+
+```{r}
+
+
+
+('MILLET', 39.51710343683095, -84.73440863198414),
+('FLOWER', 39.516168175163834, -84.73229505126525),
+('HAHNE', 39.515367902931345, -84.73221770502954),
+('MARTIN', 39.51521970973616, -84.73330558047414),
+('MARCUM', 39.514731375607035, -84.73204494223532),
+('HEPBURM', 39.51412302236643, -84.73274231655985),
+('BRANDON', 39.51483897494238, -84.73367572530749),
+('MCFARLAND', 39.514160268633205, -84.73367572530749),
+('WITHROW', 39.512546245248046, -84.7340039536736),
+('PEARSON', 39.51101759096483, -84.73105427552454),
+('PSYCHOLOGY', 39.51195416861339, -84.73138432096212),
+('GARDEN', 39.51231422629568, -84.72994665693726),
+('SYMMES', 39.51213212839214, -84.72910980774815),
+('FARMER', 39.51146581153135, -84.72957663583358),
+('DORSEY', 39.51078810692643, -84.72834717482469),
+('MCBRIDE', 39.51074672017311, -84.72678076478216),
+('DENNISON', 39.510788106927976, -84.72613703461772),
+('COLLINS', 39.51183932222475, -84.72722601145139),
+('GARLAND', 39.510643249531725, -84.73290624996685),
+('ENGINEERING', 39.51077970395379, -84.73230855916134),
+('BENTON', 39.51083337347935, -84.73327731510948),
+('EVENS', 39.51121413021484, -84.73567520992665),
+('KING', 39.50890975339297, -84.73794978312675),
+('MCGUFFY', 39.50802310074657, -84.73840045471991),
+('OGDEN', 39.50986262632099, -84.73563275953418),
+('HARRISON', 39.5091882367809, -84.73649133753828),
+('BISHOP', 39.50796676258242, -84.73705040986925),
+('ALUMNI', 39.50818962478376, -84.73642338179019),
+('IRVINE', 39.50793291654612, -84.7354802260696),
+('STODDARD', 39.50846403996751, -84.73545920311814),
+('ELLIOTT', 39.50907717145037, -84.73515857528064),
+('ROUDEBUSH', 39.50955580669603, -84.73393586172223),
+('YOUNG', 39.50654123258981, -84.72825066832556),
+('STONEBRIDGE', 39.50589423039247, -84.72856976961823),
+('HILLCREST', 39.50663318413662, -84.72683001620776),
+('HAVIGHURST', 39.505419335952745, -84.72723816907136),
+('CLAWSON', 39.50427990256115, -84.72634023283337),
+('THOMSON', 39.50477804910181, -84.72488572461553),
+('MCKEE', 39.50306501064302, -84.7261763190181),
+('PEABODY', 39.501437860308535, -84.72538454679946),
+('EMERSON', 39.501844632282385, -84.73197257624503),
+('TAPPAN', 39.50259002275944, -84.73132361590669),
+('MORRIS', 39.50262889259537, -84.73233113422167),
+('ETHERIDGE', 39.50349977795981, -84.7320010222281),
+('MAPLESTREET', 39.504359071658754, -84.73241543180343),
+('HIESTAND', 39.50570401932286, -84.73248806240024),
+('STANTON', 39.50202068630409, -84.73375252263469),
+('DODDS', 39.50313757569307, -84.7336976352742),
+('ANDERSON', 39.50207563793454, -84.73558144069648),
+('PORTER', 39.50321930518136, -84.73546778870045),
+('MACCRACKEN', 39.50429783918332, -84.73439336603136),
+('SCOTT', 39.50464547245151, -84.73369959002004),
+('RICHARD', 39.5044151177602, -84.7358128666275),
+('MINNICH', 39.50561835852071, -84.73363958523231),
+('HAMILTON', 39.50581606315999, -84.73545686446914),
+('FISHER', 39.501512738630225, -84.73823577857824),
+('LOGAN', 39.50150726035788, -84.73770722849405),
+('TALLAWANDA', 39.500811607008494, -84.73738965100577),
+('PINES', 39.500808122915664, -84.73855610859603),
+('BLANCHARD', 39.50094167961313, -84.73913105929617),
+('WELLS', 39.5068332712084, -84.73732953538115)
+```
+
+
+
+
+
+
+
+By Year
+
+```{r}
+date_ranges <- data.frame(
+  StartDate = as.Date(c("2013-08-26", "2014-08-25", "2015-08-24")),
+  EndDate = as.Date(c("2014-05-18", "2015-05-17", "2016-05-15")),
+  RangeName = c("13-14", "14-15", "15-16"))
+
+
+generate_column_name <- function(date_ranges, date) {
+  matching_range <- date_ranges$RangeName[date >= date_ranges$StartDate & date <= date_ranges$EndDate]
+  if (length(matching_range) > 0) {
+    return(paste("Count_", matching_range, sep = ""))
+  } else {
+    return("Count_Other")
+  }
+}
+
+years <- viz_data %>%
+  rowwise() %>% 
+  mutate(Column_Name = generate_column_name(date_ranges, date))
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+Day Outliers (GBD, new years, halloween...)
+
+```{r}
+
+day_counts <- unique_data
+
+unique_data$startDate <- as.Date(unique_data$Date, format = "%y%m%d")
+
+day_counts$Month <- month(unique_data$startDate)
+day_counts$Year <- year(unique_data$startDate)
+
+day_counts$month_name <- month.name[month(day_counts$Month)]
+
+# Extract month and day
+day_counts$Month <- month(day_counts$startDate)
+day_counts$Day <- day(day_counts$startDate)
+day_counts$Year <- year(day_counts$startDate)
+
+same_month_day_counts <- unique_data %>%
+  group_by(Month, Day) %>%
+  summarize(count = n())
+
+# Filter for the specific month and day you want to find (e.g., January 1st)
+january_1_count <- same_month_day_counts %>%
+  filter(Month == 1, Day == 1) %>%
+  pull(count)
+
+print(january_1_count)
+
+valentine_count <- same_month_day_counts %>%
+  filter(Month == 2, Day == 14) %>%
+  pull(count)
+
+cat("Number of occurrences for January 1st:", valentine_count)
+
+# Group by Month and Day, and then count the occurrences
+day_counts <- day_counts %>% 
+  group_by(Month, Day) %>%
+  summarize(count = n())
+
+```
 
 
 
