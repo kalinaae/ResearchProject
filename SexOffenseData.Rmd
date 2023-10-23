@@ -9,10 +9,11 @@ This is my RMarkdown document for data cleaning!
 knitr::opts_chunk$set(echo = TRUE)
 
 ```{r setup, include=FALSE}
-install.packages("lubridate")
 library(tidyverse)
 library(dplyr)
 library(lubridate)
+library(ggplot2)
+library(scales)
 
 data_all <- list.files(path = "/Users/avakalina/Downloads/Deans Scholar",
                        pattern = "*.csv", full.names = TRUE) %>% 
@@ -31,7 +32,135 @@ filtered_data <- data_all %>%
   select(-IncidentStart, -IncidentEnd) %>% 
   mutate(ReportedDate = as.Date(ReportedDate, format="%m/%d/%Y"),
          EndDate = as.Date(EndDate, format="%m/%d/%Y"),
-         StartDate = as.Date(StartDate, format="%m/%d/%Y"))
+         StartDate = as.Date(StartDate, format="%m/%d/%Y")) 
+
+
+```
+
+
+```{r}
+#add coordinates
+
+unique_locations <- unique(viz_data$Location)
+coordinates <- c()
+
+for (location in unique_locations) {
+  if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : HAVIGHURST HALL") {
+    coordinates <- c(coordinates, "39.50541934	-84.72723817") 
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : THOMSON HALL") {
+    coordinates <- c(coordinates, "39.50477805	-84.72488572")  
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : SCOTT HALL") {
+    coordinates <- c(coordinates, "39.50464547	-84.73369959")  
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : STANTON HALL") {
+    coordinates <- c(coordinates, "39.50202069	-84.73375252") 
+  } #else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS") {
+    coordinates <- c(coordinates, "34.0522, -118.2437")  
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : HERITAGE COMMONS : TALLAWANDA HALL") {
+    coordinates <- c(coordinates, "39.500889	-84.737415")  # Add coordinates for Chicago
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : TAPPAN HALL") {
+    coordinates <- c(coordinates, "39.50259002	-84.73132362")
+  } #else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : NON CAMPUS PROPERTY") {
+    coordinates <- c(coordinates, "34.0522, -118.2437")  
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : SHRIVER CENTER") {
+    coordinates <- c(coordinates, "39.507151, -84.732566")  
+  } #else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : NON CAMPUS PROPERTY : OFF SITE LOCATION") {
+    coordinates <- c(coordinates, "25.7617, -80.1918") 
+  } #else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS") {
+    coordinates <- c(coordinates, "34.0522, -118.2437")  
+  } #else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : SWING HALL") {
+    coordinates <- c(coordinates, "41.8781, -87.6298")  # Add coordinates for Chicago
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : HEPBURN HALL") {
+    coordinates <- c(coordinates, "39.51412302	-84.73274232")
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : KING LIBRARY") {
+    coordinates <- c(coordinates, "39.508745	-84.737978")  
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : YOUNG HALL (FKA BEECHWOODS HALL)") {
+    coordinates <- c(coordinates, "39.50654123	-84.72825067")  
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : WELLS HALL") {
+    coordinates <- c(coordinates, "39.50683327	-84.73732954")  
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : ANDERSON HALL") {
+    coordinates <- c(coordinates, "39.50207564	-84.73558144")  
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : HEPBURN HALL") {
+    coordinates <- c(coordinates, "39.51412302	-84.73274232")
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : HAHNE HALL") {
+    coordinates <- c(coordinates, "39.5153679	-84.73221771")  
+  } else if (location == "IAMI UNIVERSITY : OXFORD CAMPUS : MAPLESTREET STATION") {
+    coordinates <- c(coordinates, "39.504299	-84.732541")  
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : PORTER HALL") {
+    coordinates <- c(coordinates, "39.50321931	-84.73546779")  
+  } #else if (location == "CITY OF OXFORD : POPLAR ST") {
+    coordinates <- c(coordinates, "39.51412302	-84.73274232")
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : ARMSTRONG STUDENT CENTER") {
+    coordinates <- c(coordinates, "39.507722	-84.732957")  
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : COOK FIELD") {
+    coordinates <- c(coordinates, "39.509036	-84.729084")  
+  } #else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : MARY LYON HALL") {
+    coordinates <- c(coordinates, "39.50683327	-84.73732954") 
+  } #else if (location == "CITY OF OXFORD : SOUTHPOINTE PKWY) {
+    coordinates <- c(coordinates, "39.50683327	-84.73732954")  
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : STONEBRIDGE HALL") {
+    coordinates <- c(coordinates, "39.50589423	-84.72856977")  
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : CLAWSON HALL") {
+    coordinates <- c(coordinates, "39.5042799	-84.72634023")
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : SLANTWALK") {
+    coordinates <- c(coordinates, "39.509353	-84.7376")  
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : HAMILTON HALL") {
+    coordinates <- c(coordinates, "39.50581606	-84.73545686")  
+  } #else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : NON CAMPUS PROPERTY : FRATERNITIES : SIGMA PI") {
+    coordinates <- c(coordinates, "39.50321931	-84.73546779") 
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : MCBRIDE HALL") {
+    coordinates <- c(coordinates, "39.51074672	-84.72678076")  
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : MARCUM HOTEL AND CONFERENCE CENTER") {
+    coordinates <- c(coordinates, "39.512954	-84.727685")
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : RECREATIONAL SPORTS CENTER") {
+    coordinates <- c(coordinates, "39.502644	-84.737831")  
+  } #else if (location == "CITY OF OXFORD : LOCUST ST") {
+    coordinates <- c(coordinates, "39.50581606	-84.73545686")
+  } #else if (location == "CITY OF OXFORD : BROWN RD") {
+    coordinates <- c(coordinates, "39.50581606	-84.73545686")
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : WESTERN DRIVE") {
+    coordinates <- c(coordinates, "39.50094	-84.72726")
+  } #else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : MCGUFFEY DRIVE") {
+    coordinates <- c(coordinates, "39.51074672	-84.72678076")  
+  } #else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : HERITAGE COMMONS") {
+    coordinates <- c(coordinates, "39.512954	-84.727685")
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : MCFARLAND HALL") {
+    coordinates <- c(coordinates, "39.514026	-84.733895")
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : PHILLIPS HALL") {
+    coordinates <- c(coordinates, "39.505115	-84.736888")  
+  } #else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : DITMER PARKING LOT") {
+    coordinates <- c(coordinates, "39.512954	-84.727685")
+  } #else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : CENTER FOR PERFORMING ARTS") {
+    coordinates <- c(coordinates, "39.502644	-84.737831") 
+  } #else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : IRVIN HALL") {
+    coordinates <- c(coordinates, "39.514026	-84.733895")
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : ETHRIDGE HALL") {
+    coordinates <- c(coordinates, "39.50349978	-84.73200102") 
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : ELLIOTT HALL") {
+    coordinates <- c(coordinates, "39.50907717	-84.73515858")
+  } #else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : PRESSER HALL") {
+    coordinates <- c(coordinates, "39.505115	-84.736888") 
+  } #else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : FARMER SCHOOL OF BUSINESS") {
+    coordinates <- c(coordinates, "39.50349978	-84.73200102") 
+  } #else if (location == "CITY OF OXFORD : HIGH ST") {
+    coordinates <- c(coordinates, "39.50907717	-84.73515858")
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : MINNICH HALL") {
+    coordinates <- c(coordinates, "39.50561836	-84.73363959") 
+  } else if (location == "CITY OF OXFORD : BUSINESS : BRICK STREET") {
+    coordinates <- c(coordinates, "39.510727	-84.7411")
+  } else if (location == "MIAMI UNIVERSITY : OXFORD CAMPUS : OGDEN HALL") {
+    coordinates <- c(coordinates, "39.50986263	-84.73563276") 
+  } else if (location == "CITY OF OXFORD : BUSINESS : SYMMES STREET") {
+    coordinates <- c(coordinates, "39.51213213	-84.72910981")
+}
+
+# Add the coordinates to the original dataset based on the unique locations
+data$Coordinates <- coordinates[match(data$Location, unique_locations)]
+
+# Print the updated dataset
+print(data)
+
+unique(viz_data$Location)
+
 ```
 
 
@@ -40,25 +169,62 @@ VISUALIZATIONS
 viz_data <- filtered_data %>% 
   mutate(Inc_Month = month(StartDate),
          Inc_Year = year(StartDate),
-         Month_Name = month.name[month(StartDate)]) 
-
+         Month_Name = month.name[month(StartDate)],
+         incident_dow = weekdays(StartDate),
+         reported_dow = weekdays(ReportedDate),
+         Academic = NA, 
+          incident_length = as.numeric(EndDate - StartDate),
+          reported_date_difference = as.numeric(ReportedDate - StartDate))
 
 df_crime_monthly <- viz_data %>%
   group_by(Month_Name, Inc_Year) %>%
-  summarize(count= n())%>% 
-  filter(between(StartDate, as.Date('2013-08-15'), as.Date('2023-05-15'))) %>% 
-  factor(Month_Name, levels = c("August", "September", "October", "November", "December","January", "February", "March", "April", "May", "June", "July"))
+  filter(between(StartDate, as.Date('2013-08-15'), as.Date('2023-05-15'))) %>%
+  summarize(count= n())
+
+academic_years <- seq(2013, 2022)
+
+# Loop through each academic year
+for (i in 1:length(academic_years)) {
+  academic_year_start <- as.Date(paste(academic_years[i], "-09-01", sep = ""))
+  academic_year_end <- as.Date(paste(academic_years[i] + 1, "-08-31", sep = ""))
+  viz_data$Academic[viz_data$StartDate >= academic_year_start & viz_data$StartDate <= academic_year_end] <- paste(academic_years[i], academic_years[i] + 1, sep = "-")
+}
 
 df_crime_yearly <- viz_data %>% 
-   filter(between(StartDate, as.Date('2014-01-01'), as.Date('2022-12-31')))
+  filter(between(StartDate, as.Date('2013-08-19'), as.Date('2023-05-19'))) %>%
+  group_by(Academic) %>%
+  summarize(count= n())
 
 ```
 
 
 ```{r}
-library(ggplot2)
-library(scales)
+df_crime_daily <- viz_data %>%
+  group_by(incident_dow) %>%
+  summarize(count= n())
 
+reported_df_crime_daily <- viz_data %>% 
+  group_by(reported_dow) %>%
+  summarize(count= n())
+
+reported_df_crime_daily$reported_dow <- factor(reported_df_crime_daily$reported_dow, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"))
+
+ggplot(reported_df_crime_daily, aes(x = reported_dow, y = count)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  labs(title = "Aggregated Data by Day", x = "Date", y = "Total Value") +
+  theme_minimal()
+
+df_crime_daily$incident_dow <- factor(df_crime_daily$incident_dow, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"))
+
+# Create a ggplot bar plot
+ggplot(df_crime_daily, aes(x = incident_dow, y = count)) +
+  geom_bar(stat = "identity", fill = "blue", na.rm = TRUE) +
+  labs(title = "Aggregated Data by Day", x = "Date", y = "Total Value") +
+  theme_minimal()
+```
+
+
+```{r}
 # Sex Offense by Month with year
 ggplot(df_crime_monthly, aes(x = factor(Month_Name, levels = month.name[c(7:12, 1:6)]), y = count, group = Inc_Year, color = as.factor(Inc_Year))) +
   geom_line() +
@@ -86,35 +252,89 @@ ggplot(df_crime_monthly, aes(x = Month_Name, y = count, fill= as.factor(Inc_Year
 ``` {r}
 ggplot(df_crime_monthly, aes(x = Month_Name, y = count, fill= Month_Name)) +
   geom_bar(stat = "identity") +
-  labs(title = "Sexual Offense Count by Month", x = "Months", y = "Count") +
+  labs(title = "Aggregate Sexual Offense Reports by Month Over 10 Years", x = "Months", y = "Reports") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()) # Remove the legend as it's not needed with fill=Month_Name
+
+
 ```
 
 
 
 ``` {r}
-df_crime_yearly$Inc_Year <-  as.Date(paste0(df_crime_yearly$Inc_Year, "-01-01"))
 
-df_crime_yearly <- df_crime_yearly %>%
-  group_by(Inc_Year) %>% 
-  summarize(count= n())
+#df_crime_yearly <- df_crime_yearly %>%
+ # group_by(Inc_Year) %>% 
+  #summarize(count= n())
 
+#########################################################  
 ggplot(df_crime_yearly, aes(x = as.Date(paste0(Inc_Year, "-01-01")), y = count)) +
-  geom_line() +   # Line plot
-  labs(title = "Time Series Plot Over 10 Years",
-    x = "Date",
-    y = "Value") +
-  theme_minimal()+
+  geom_line(color = "blue", size = 1) +
+  labs(
+    title = "Sexual Assault Reports Over 10 Years",
+    x = "Year",
+    y = "Reports"
+  ) +
+  theme_minimal() +
   scale_x_date(date_labels = "%Y", date_breaks = "1 year") +
-  labs(x = "Year", y = "Value")
+  theme(
+    axis.text.x = element_text(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+   # panel.border = element_rect(color = "black", fill = NA, size = 1),
+    axis.line = element_line(color = "black")
+  ) +
+  geom_point(color = "blue", size = 2) +
+  coord_cartesian(ylim = c(0, max(df_crime_yearly$count)))
+#########################################################  
+
+ggplot(df_crime_yearly, aes(x = as.character(Academic), y = count, fill = as.character(Academic))) +
+  geom_bar(stat = "identity", width = 0.7) +
+  labs(
+    title = "Sexual Assault Reports Over 10 Years",
+    x = "Year",
+    y = "Reports"
+  ) +
+  theme_minimal() +
+  theme(
+    #axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.major = element_blank(),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+  )  
+
+
+```
+```{r}
+
+year_data <- viz_data %>% 
+  mutate(Year = format(StartDate, "%Y")) %>% 
+  mutate(Month = format(StartDate, "%m"))
+
+year_data <- year_data %>% 
+  group_by(Year, Month) %>% 
+  summarize(incidents = sum(CaseNumber))
+
+ggplot(viz_data, aes(x = StartDate, y = CaseNumber))+
+  geom_line()+
+  labs(title = "continuous time series",
+       x= "years",
+       y = "incidents")+
+  theme_minimal()
+
+
 
 ```
 
 
 
 
-`{r}
 
 library(lubridate)
 year_summary$Inc_Year <- as.Date(year_summary$Inc_Year, format = "%Y")
